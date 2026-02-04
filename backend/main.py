@@ -1,40 +1,71 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 app = FastAPI()
+
+# Enable CORS (needed for frontend later)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 class Customer(BaseModel):
     id: int
     name: str
-    email: str
+    email: EmailStr
     status: str
     total_spend: float
     created_at: datetime
 
 
-#temporary fake data
-customers_db = [
-    Customer(
-        id=1,
-        name="Alice Johnson",
-        email="alice@example.com",
-        status="active",
-        total_spend=1234.56,
-        created_at=datetime.utcnow()
-    ),
-    Customer(
-        id=2,
-        name="Bob Smith",
-        email="bob@example.com",
-        status="delinquent",
-        total_spend=987.65,
-        created_at=datetime.utcnow()
-    ),
-]
+class CustomerCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    status: str = Field(..., pattern="^(active|paused|delinquent)$")
+    total_spend: float = Field(..., ge=0)
+
+
+customers_db: List[Customer] = []
+next_id = 1
 
 
 @app.get("/customers", response_model=List[Customer])
 def get_customers():
+    """Get all customers"""
     return customers_db
+
+
+@app.get("/customers/{customer_id}", response_model=Customer)
+def get_customer(customer_id: int):
+    """Get a single customer by ID"""
+    for customer in customers_db:
+        if customer.id == customer_id:
+            return customer
+    raise HTTPException(status_code=404, detail="Customer not found")
+
+
+@app.post("/customers", response_model=Customer, status_code=201)
+def create_customer(customer: CustomerCreate):
+    """Create a new customer"""
+    global next_id
+    
+    new_customer = Customer(
+        id=next_id,
+        name=customer.name,
+        email=customer.email,
+        status=customer.status,
+        total_spend=customer.total_spend,
+        created_at=datetime.utcnow(),
+    )
+    
+    customers_db.append(new_customer)
+    next_id += 1
+    
+    return new_customer
