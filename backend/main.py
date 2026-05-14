@@ -6,7 +6,6 @@ from pydantic import BaseModel, EmailStr, Field
 
 app = FastAPI()
 
-# Enable CORS (needed for frontend later)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,6 +30,12 @@ class CustomerCreate(BaseModel):
     status: str = Field(..., pattern="^(active|paused|delinquent)$")
     total_spend: float = Field(..., ge=0)
 
+
+class CustomerUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    status: str = Field(..., pattern="^(active|paused|delinquent)$")
+    total_spend: float = Field(..., ge=0)
 
 customers_db: List[Customer] = []
 next_id = 1
@@ -69,3 +74,19 @@ def create_customer(customer: CustomerCreate):
     next_id += 1
     
     return new_customer
+
+@app.put("/customers/{customer_id}", response_model=Customer)
+def update_customer(customer_id: int, update: CustomerUpdate):
+    """Update an existing customer"""
+    for i, customer in enumerate(customers_db):
+        if customer.id == customer_id:
+            customers_db[i] = Customer(
+                id=customer.id,
+                name=update.name,
+                email=update.email,
+                status=update.status,
+                total_spend=update.total_spend,
+                created_at=customer.created_at,
+            )
+            return customers_db[i]
+    raise HTTPException(status_code=404, detail="Customer not found")

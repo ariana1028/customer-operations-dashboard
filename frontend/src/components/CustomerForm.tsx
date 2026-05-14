@@ -1,42 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { CustomerCreate } from '../types/customer';
 
 interface CustomerFormProps {
     onSubmit: (customer: CustomerCreate) => Promise<void>;
     loading: boolean;
+    initialData?: CustomerCreate;
+    onCancel?: () => void; 
 }
 
-export default function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
-    const [formData, setFormData] = useState<CustomerCreate>({
-        name: '',
-        email: '',
-        status: 'active',
-        total_spend: 0,
-    });
+export default function CustomerForm({ onSubmit, loading, initialData, onCancel }: CustomerFormProps) {
+    const emptyForm: CustomerCreate = { name: '', email: '', status: 'active', total_spend: 0 };
 
+    const [formData, setFormData] = useState<CustomerCreate>(initialData ?? emptyForm);
     const [error, setError] = useState<string | null>(null);
+
+    // Sync form when switching between create/edit
+    useEffect(() => {
+        setFormData(initialData ?? emptyForm);
+        setError(null);
+    }, [initialData]);
+
+    const isEditing = !!initialData;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-
         try {
-        await onSubmit(formData);
-        // Reset form after successful submission
-        setFormData({
-            name: '',
-            email: '',
-            status: 'active',
-            total_spend: 0,
-        });
+            await onSubmit(formData);
+            if (!isEditing) setFormData(emptyForm); // only reset on create
         } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create customer');
+            setError(err instanceof Error ? err.message : 'Failed to save customer');
         }
     };
 
     return (
         <div style={{ padding: '20px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-        <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: '600' }}>Add New Customer</h2>
+        <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: '600' }}>
+            {isEditing ? 'Edit Customer' : 'Add New Customer'}
+        </h2>
         
         <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '16px' }}>
@@ -132,7 +133,7 @@ export default function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
             style={{
                 width: '100%',
                 padding: '10px',
-                backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+                backgroundColor: loading ? '#9ca3af' : isEditing ? '#10b981' : '#3b82f6',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
@@ -141,8 +142,23 @@ export default function CustomerForm({ onSubmit, loading }: CustomerFormProps) {
                 cursor: loading ? 'not-allowed' : 'pointer',
             }}
             >
-            {loading ? 'Creating...' : 'Create Customer'}
+            {loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Customer'}
             </button>
+
+            {onCancel && (
+            <button
+                type="button"
+                onClick={onCancel}
+                style={{
+                marginTop: '8px', width: '100%', padding: '10px',
+                backgroundColor: 'white', color: '#6b7280',
+                border: '1px solid #d1d5db', borderRadius: '4px',
+                fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+                }}
+            >
+                Cancel
+            </button>
+            )}
         </form>
         </div>
     );

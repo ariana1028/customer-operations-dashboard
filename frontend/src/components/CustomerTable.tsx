@@ -4,9 +4,10 @@ interface CustomerTableProps {
     customers: Customer[];
     loading: boolean;
     error: string | null;
-    }
+    onEdit: (customer: Customer) => void;
+}
 
-    export default function CustomerTable({ customers, loading, error }: CustomerTableProps) {
+    export default function CustomerTable({ customers, loading, error, onEdit }: CustomerTableProps) {
     if (loading) {
         return <div style={{ padding: '20px' }}>Loading customers...</div>;
     }
@@ -43,6 +44,7 @@ interface CustomerTableProps {
                 <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
                 <th style={{ padding: '12px', textAlign: 'right' }}>Total Spend</th>
                 <th style={{ padding: '12px', textAlign: 'left' }}>Created At</th>
+                <th style={{ padding: '12px', textAlign: 'center' }}>Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -70,6 +72,18 @@ interface CustomerTableProps {
                 </td>
                 <td style={{ padding: '12px' }}>
                     {new Date(customer.created_at).toLocaleDateString()}
+                </td>
+                <td style={{ padding: '12px', textAlign: 'center' }}>
+                    <button
+                    onClick={() => onEdit(customer)}
+                    style={{
+                        padding: '4px 12px', backgroundColor: 'white', color: '#3b82f6',
+                        border: '1px solid #3b82f6', borderRadius: '4px',
+                        fontSize: '12px', fontWeight: '500', cursor: 'pointer',
+                    }}
+                    >
+                    Edit
+                    </button>
                 </td>
                 </tr>
             ))}

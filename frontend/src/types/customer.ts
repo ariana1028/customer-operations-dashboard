@@ -13,3 +13,5 @@ export interface CustomerCreate {
     status: 'active' | 'paused' | 'delinquent';
     total_spend: number;
 }
+
+export type CustomerUpdate = CustomerCreate;

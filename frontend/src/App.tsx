@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import CustomerTable from './components/CustomerTable';
 import CustomerForm from './components/CustomerForm';
 import { customersApi } from './api/customers';
-import type { Customer, CustomerCreate } from './types/customer';
+import type { Customer, CustomerCreate, CustomerUpdate } from './types/customer';
 
 function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     loadCustomers();
@@ -37,6 +38,18 @@ function App() {
     }
   };
 
+  const handleUpdateCustomer = async (data: CustomerUpdate) => {
+    if (!editingCustomer) return;
+    setCreating(true);
+    try {
+      await customersApi.update(editingCustomer.id, data);
+      setEditingCustomer(null);
+      await loadCustomers();
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '20px' }}>
@@ -47,10 +60,15 @@ function App() {
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
           <div>
-            <CustomerForm onSubmit={handleCreateCustomer} loading={creating} />
+            <CustomerForm
+              onSubmit={editingCustomer ? handleUpdateCustomer : handleCreateCustomer}
+              loading={creating}
+              initialData={editingCustomer ?? undefined}         // NEW
+              onCancel={editingCustomer ? () => setEditingCustomer(null) : undefined} // NEW
+            />
           </div>
           <div>
-            <CustomerTable customers={customers} loading={loading} error={error} />
+            <CustomerTable customers={customers} loading={loading} error={error} onEdit={setEditingCustomer} />
           </div>
         </div>
       </main>
